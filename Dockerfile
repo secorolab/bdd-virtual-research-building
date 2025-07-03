@@ -1,13 +1,10 @@
-FROM quay.io/jupyter/minimal-notebook:ubuntu-24.04
+FROM intel4coro/jupyter-ros2:humble-py3.10
 
 # --- Define Environment Variables--- #
-ENV ROS_DISTRO=jazzy
-ARG ROS_PKG=desktop
-LABEL version="ROS-${ROS_DISTRO}-${ROS_PKG}"
-
-ENV ROS_PATH=/opt/ros/${ROS_DISTRO}
-ENV ROS_ROOT=${ROS_PATH}/share/ros
-ENV ROS_WS=${HOME}/ros2_ws
+ENV DEBIAN_FRONTEND=noninteractive
+ENV VENV_DIR=/home/${NB_USER}/venv
+ENV OMNI_KIT_ACCEPT_EULA=YES
+ENV OMNI_USER_CACHE_DIR=/home/${NB_USER}/.cache/ov
 
 # --- Install basic tools --- #
 USER root
@@ -25,45 +22,6 @@ RUN  apt update -q && apt install -y \
         build-essential \
         locales \
         lsb-release
-
-# Set locale
-RUN locale-gen en_US en_US.UTF-8 && \
-    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-ENV LANG=en_US.UTF-8
-
-# --- Install ROS2 --- #
-USER root
-RUN add-apt-repository universe
-RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
-RUN apt update && \
-    apt upgrade -y && \
-    apt install -y \
-        ros-dev-tools \
-        ros-${ROS_DISTRO}-${ROS_PKG} && \
-    apt clean && \
-    echo "source ${ROS_PATH}/setup.bash" >> /root/.bashrc && \
-    echo "source ${ROS_PATH}/setup.bash" >> /home/${NB_USER}/.bashrc
-
-# --- rosdep init --- #
-RUN rosdep init && \
-    rosdep update && \
-    rosdep fix-permissions
-
-# --- Install ROS packages for tutorials (Optional)--- #
-USER root
-RUN apt-get update && \
-    apt-get install -y \
-    ros-${ROS_DISTRO}-gazebo-* \
-    ros-${ROS_DISTRO}-cartographer \
-    ros-${ROS_DISTRO}-dynamixel-sdk \
-    ros-${ROS_DISTRO}-turtlebot3* \
-    ros-${ROS_DISTRO}-slam-toolbox \
-    ros-${ROS_DISTRO}-urdf-launch \
-    ros-${ROS_DISTRO}-urdf-tutorial \
-    ros-${ROS_DISTRO}-turtle-tf2-py \
-    ros-${ROS_DISTRO}-tf2-tools \
-    ros-${ROS_DISTRO}-tf-transformations
 
 # --- Install VNC server and XFCE desktop environment --- #
 USER root
@@ -121,12 +79,32 @@ RUN pip install --upgrade \
         colcon-common-extensions \
     && pip cache purge
 
-# --- Install gazebo --- #
+# create virtualenv and install pip
+USER ${NB_USER}
+RUN python3.10 -m venv $VENV_DIR && \
+    $VENV_DIR/bin/python -m ensurepip && \
+    $VENV_DIR/bin/pip install --upgrade pip setuptools wheel
+ENV PATH="$VENV_DIR/bin:$PATH"
+
+# Clone bdd repositories
+USER ${NB_USER}
+RUN mkdir -p /home/${NB_USER}/behave-isaac-bdd
+WORKDIR /home/${NB_USER}/behave-isaac-bdd
+RUN git clone https://github.com/minhnh/bdd-dsl.git && \
+    git clone https://github.com/minhnh/bdd-isaacsim-exec.git && \
+    git clone https://github.com/secorolab/metamodels-bdd.git && \
+    git clone https://github.com/minhnh/rdf-utils.git && \
+    git clone https://github.com/secorolab/models-bdd.git
+
+# Install the packages
+WORKDIR /home/${NB_USER}/behave-isaac-bdd/rdf-utils
+RUN $VENV_DIR/bin/pip install -e .
+WORKDIR /home/${NB_USER}/behave-isaac-bdd/bdd-dsl
+RUN $VENV_DIR/bin/pip install -e .
+WORKDIR /home/${NB_USER}/behave-isaac-bdd/bdd-isaacsim-exec
+RUN $VENV_DIR/bin/pip install -e .
 USER root
-RUN curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-RUN apt-get update && \
-    apt-get install -y gz-ionic ros-${ROS_DISTRO}-ros-gz
+RUN chown -R ${NB_USER}:users /home/${NB_USER}/.cache
 
 # --- Install VSCode server --- #
 USER ${NB_USER}
@@ -135,12 +113,7 @@ RUN echo 'alias code="$(which code-server)"' >> ~/.bashrc
 RUN code-server --install-extension ms-python.python \
   && code-server --install-extension ms-toolsai.jupyter
 RUN pip install git+https://github.com/yxzhan/jupyter-code-server.git
-ENV CODE_WORKING_DIRECTORY=${HOME}/work
-
-# --- Copy notebooks --- #
-USER ${NB_USER}
-WORKDIR ${HOME}/work
-COPY --chown=${NB_USER}:users ./ ${HOME}/work
+ENV CODE_WORKING_DIRECTORY=${HOME}/
 
 # --- Entrypoint --- #
 COPY --chown=${NB_USER}:users entrypoint.sh /
