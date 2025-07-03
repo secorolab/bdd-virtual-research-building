@@ -21,7 +21,7 @@ RUN  apt update -q && apt install -y \
         apt-transport-https \
         build-essential \
         lsb-release
-        
+
 # --- Install VNC server and XFCE desktop environment --- #
 USER root
 RUN apt-get -y -qq update \
@@ -79,7 +79,7 @@ RUN pip install --upgrade \
     && pip cache purge
 
 # install python3.10 from deadsnakes
-USER ${NB_USER}
+USER root
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
     apt-get install -y python3.10 python3.10-venv python3.10-dev
