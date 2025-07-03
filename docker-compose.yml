@@ -1,6 +1,6 @@
 services:
   bdd-behave:
-    image: intel4coro/jupyter-ros2:jazzy-py3.10
+    image: jupyter-notebook:ubuntu-24.04
     build:
       context: ./
       dockerfile: ./Dockerfile

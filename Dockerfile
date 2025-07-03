@@ -1,4 +1,4 @@
-FROM intel4coro/jupyter-ros2:humble-py3.10
+FROM quay.io/jupyter/minimal-notebook:ubuntu-24.04
 
 # --- Define Environment Variables--- #
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,9 +19,7 @@ RUN  apt update -q && apt install -y \
         net-tools\
         ca-certificates \
         apt-transport-https \
-        build-essential \
-        locales \
-        lsb-release
+        build-essential
 
 # --- Install VNC server and XFCE desktop environment --- #
 USER root
@@ -79,6 +77,12 @@ RUN pip install --upgrade \
         colcon-common-extensions \
     && pip cache purge
 
+# install python3.10 from deadsnakes
+USER ${NB_USER}
+RUN add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.10 python3.10-venv python3.10-dev
+
 # create virtualenv and install pip
 USER ${NB_USER}
 RUN python3.10 -m venv $VENV_DIR && \
@@ -105,15 +109,6 @@ WORKDIR /home/${NB_USER}/behave-isaac-bdd/bdd-isaacsim-exec
 RUN $VENV_DIR/bin/pip install -e .
 USER root
 RUN chown -R ${NB_USER}:users /home/${NB_USER}/.cache
-
-# --- Install VSCode server --- #
-USER ${NB_USER}
-RUN conda install -y conda-forge::code-server
-RUN echo 'alias code="$(which code-server)"' >> ~/.bashrc
-RUN code-server --install-extension ms-python.python \
-  && code-server --install-extension ms-toolsai.jupyter
-RUN pip install git+https://github.com/yxzhan/jupyter-code-server.git
-ENV CODE_WORKING_DIRECTORY=${HOME}/
 
 # --- Entrypoint --- #
 COPY --chown=${NB_USER}:users entrypoint.sh /
