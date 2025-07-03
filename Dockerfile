@@ -19,8 +19,9 @@ RUN  apt update -q && apt install -y \
         net-tools\
         ca-certificates \
         apt-transport-https \
-        build-essential
-
+        build-essential \
+        lsb-release
+        
 # --- Install VNC server and XFCE desktop environment --- #
 USER root
 RUN apt-get -y -qq update \
