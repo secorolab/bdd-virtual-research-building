@@ -8,12 +8,12 @@ services:
     tty: true
     ports: 
       - 8888:8888
-    # privileged: true
+    privileged: true
     user: root
     working_dir: /home/jovyan/
-    command: /bin/bash
+    command: jupyter lab --allow-root --NotebookApp.token='' --no-browser --ip=0.0.0.0
     volumes:
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ./notebooks:/home/jovyan/notebooks 
     environment:
       - DISPLAY
       - NVIDIA_DRIVER_CAPABILITIES=all
