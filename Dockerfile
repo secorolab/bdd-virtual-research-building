@@ -117,10 +117,12 @@ RUN $VENV_DIR/bin/pip install -e .
 
 # Download the WebRTC Client AppImage
 WORKDIR ${HOME}/isaacsim-webrtc-client
+USER root
 RUN curl -L -o webrtc-client.AppImage https://download.isaacsim.omniverse.nvidia.com/isaacsim-webrtc-streaming-client-1.0.6-linux-x64.AppImage && \
     chmod +x webrtc-client.AppImage
 
 # Copy notebooks folder #
+USER ${NB_USER}
 COPY --chown=${NB_USER}:users ./notebooks ${HOME}/notebooks
 
 # --- Entrypoint --- #
