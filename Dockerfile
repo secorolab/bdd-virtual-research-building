@@ -95,8 +95,12 @@ RUN python3.10 -m venv $VENV_DIR && \
 ENV PATH="$VENV_DIR/bin:$PATH"
 
 # Clone bdd repositories
+USER root
+RUN mkdir -p /home/${NB_USER}/behave-isaac-bdd && \
+    chown -R ${NB_USER}:users /home/${NB_USER}/behave-isaac-bdd
+
+USER ${NB_USER}
 WORKDIR /home/${NB_USER}/behave-isaac-bdd
-RUN mkdir -p /home/${NB_USER}/behave-isaac-bdd
 RUN git clone https://github.com/minhnh/bdd-dsl.git && \
     git clone https://github.com/minhnh/bdd-isaacsim-exec.git && \
     git clone https://github.com/secorolab/metamodels-bdd.git && \
