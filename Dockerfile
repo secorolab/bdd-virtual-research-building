@@ -96,6 +96,7 @@ ENV PATH="$VENV_DIR/bin:$PATH"
 
 # Clone bdd repositories
 WORKDIR /home/${NB_USER}/behave-isaac-bdd
+RUN mkdir -p /home/${NB_USER}/behave-isaac-bdd
 RUN git clone https://github.com/minhnh/bdd-dsl.git && \
     git clone https://github.com/minhnh/bdd-isaacsim-exec.git && \
     git clone https://github.com/secorolab/metamodels-bdd.git && \
