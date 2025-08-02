@@ -111,9 +111,10 @@ WORKDIR /home/${NB_USER}/behave-isaac-bdd/bdd-isaacsim-exec
 RUN $VENV_DIR/bin/pip install -e .
 
 # Download the WebRTC Client AppImage
-WORKDIR ${HOME}/
+WORKDIR ${HOME}/isaacsim-webrtc-client
 RUN curl -L -o webrtc-client.AppImage https://download.isaacsim.omniverse.nvidia.com/isaacsim-webrtc-streaming-client-1.0.6-linux-x64.AppImage && \
-    chmod +x isaacsim-webrtc-streaming-client-1.0.6-linux-x64.AppImage
+    chmod +x webrtc-client.AppImage
+
 # Copy notebooks folder #
 COPY --chown=${NB_USER}:users ./notebooks ${HOME}/notebooks
 
