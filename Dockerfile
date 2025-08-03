@@ -117,23 +117,25 @@ RUN $VENV_DIR/bin/pip install -e .
 
 # Download the WebRTC Client AppImage
 USER root
-WORKDIR /tmp
+RUN mkdir -p /home/${NB_USER}/webrtc-client /home/${NB_USER}/bin && \
+    chown -R ${NB_USER}:users /home/${NB_USER}/webrtc-client /home/${NB_USER}/bin
+
+WORKDIR /home/${NB_USER}/webrtc-client
 RUN curl -L -o webrtc-client.AppImage https://download.isaacsim.omniverse.nvidia.com/isaacsim-webrtc-streaming-client-1.0.6-linux-x64.AppImage && \
     chmod +x webrtc-client.AppImage && \
     ./webrtc-client.AppImage --appimage-extract && \
-    mv squashfs-root /opt/webrtc-client && \
-    rm webrtc-client.AppImage
-RUN ln -s /opt/webrtc-client/isaacsim-webrtc-streaming-client /usr/local/bin/webrtc-client
-
-WORKDIR ${HOME}/isaacsim-webrtc-client
-RUN ln -s /opt/webrtc-client/isaacsim-webrtc-streaming-client webrtc-client
-
+    mv squashfs-root/* . && \
+    rm -r squashfs-root webrtc-client.AppImage && \
+    chmod -R a+rx . && \
+    ln -s /home/${NB_USER}/webrtc-client/isaacsim-webrtc-streaming-client /home/${NB_USER}/bin/webrtc-client
+ENV PATH="${HOME}/bin:${PATH}"
 
 # Copy notebooks folder #
 USER ${NB_USER}
 COPY --chown=${NB_USER}:users ./notebooks ${HOME}/notebooks
 
 # --- Entrypoint --- #
+WORKDIR /home/${NB_USER}/
 COPY --chown=${NB_USER}:users entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--no-browser", "--ip=0.0.0.0"]
